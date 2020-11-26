@@ -35,6 +35,7 @@ def TTA(model_, img, activation=nn.Softmax(dim=1)):
 
     return outputs
 
+
 def test_model():
     model.eval()
     num_steps = len(eval_loader)
@@ -57,14 +58,9 @@ def test_model():
             image_names += list(image_name)
 
     print(len(preds), len(image_names))
-    # file = pd.read_csv('/data1/cby/py_project/CLDC/output/result/pred_results.csv')
-    # test_df = pd.DataFrame(file)
-    # for pred, name in zip(preds, image_names):
-    #     test_df.iloc[list(test_df['image_name']).index(name), 1] = pred
-    # test_df.to_csv('./output/result/submission_efn-b0.csv', index=False)
 
     with open(csv_path, 'w') as f:
-        f.write('{0},{1}\n'.format('image_name', 'class'))
+        f.write('{0},{1}\n'.format('image_id', 'label'))
         for i in tqdm(range(len(preds))):
             f.write('{0},{1}\n'.format(image_names[i], preds[i]))
 
@@ -77,7 +73,7 @@ if __name__ == '__main__':
     device_id = 0
     model_name = 'efficientnet-b1'  # 'resnet50'
     # model_path = None
-    model_path = '/data1/cby/py_project/CLDC/output/weights/efficientnet-b1_LS_512/efn-b0_45_acc_0.5447.pth'
+    model_path = '/data1/cby/py_project/CLDC/output/weights/efficientnet-b1_0/e5_acc_0.8662.pth'
     model = get_efficientnet(model_name=model_name)
     # model, *_ = model_selection(modelname=model_name, num_out_classes=5000, dropout=None)
     if model_path is not None:
