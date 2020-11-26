@@ -60,6 +60,7 @@ def eval_model(epoch, is_save=True):
         })
     return acc_score.avg, losses.avg
 
+
 def train_model(epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()

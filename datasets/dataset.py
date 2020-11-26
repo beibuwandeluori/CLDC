@@ -51,6 +51,7 @@ def get_train_transforms(size=300, is_alb=True):
             transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3))
         ])
 
+
 def get_valid_transforms(size=300, is_alb=True):
     if is_alb:
         return Compose([
@@ -67,10 +68,12 @@ def get_valid_transforms(size=300, is_alb=True):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
+
 def one_hot(size, target):
     vec = torch.zeros(size, dtype=torch.float32)
     vec[target] = 1.
     return vec
+
 
 def load_image_paths_labels(root_path='/raid/chenby/cassava-leaf-disease-classification/train_images',
                             csv_path='/raid/chenby/cassava-leaf-disease-classification/train.csv',
@@ -102,11 +105,13 @@ def load_image_paths_labels(root_path='/raid/chenby/cassava-leaf-disease-classif
     else:
         return x_test, y_test
 
+
 def read_image(image_path):
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     return image
+
 
 class CLDCDataset(Dataset):
 
@@ -146,10 +151,11 @@ class CLDCDataset(Dataset):
     def get_labels(self):
         return list(self.labels)
 
+
 class CLDCDatasetSubmission(Dataset):
 
-    def __init__(self, root_path='/raid/chenby/CLDC/test_512', is_one_hot=False, transforms=None,
-                 classes_num=5000, is_alb=True):
+    def __init__(self, root_path='/raid/chenby/cassava-leaf-disease-classification/test_images', is_one_hot=False, transforms=None,
+                 classes_num=5, is_alb=True):
         super().__init__()
         self.classes_num = classes_num
         self.transforms = transforms
