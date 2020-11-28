@@ -3,7 +3,7 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="923b8a7b-d878-43fa-ba5a-2be0dc5dd0d9" name="CLDC" url="http://172.31.224.60">
-        <fileTransfer host="172.31.224.60" port="22" accessType="SFTP">
+        <fileTransfer host="172.31.224.60" port="22" rootFolder="/data1/cby" accessType="SFTP">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>

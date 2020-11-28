@@ -12,7 +12,7 @@ from datasets.dataset import CLDCDataset, get_train_transforms, get_valid_transf
 from losses.losses import LabelSmoothing, FocalLoss
 from catalyst.data.sampler import BalanceClassSampler
 from utils.utils import AverageMeter, calculate_metrics, Logger
-
+import argparse
 
 def eval_model(epoch, is_save=True):
     batch_time = AverageMeter()
@@ -109,18 +109,40 @@ def train_model(epoch):
     return losses.val
 
 
+parser = argparse.ArgumentParser(description="Cassava Leaf Disease Classification  @cby Training")
+parser.add_argument(
+    "--model_name", default='efficientnet-b1', help="Model name", type=str
+)
+parser.add_argument(
+    "--device_id", default=0, help="Setting the GPU id", type=int
+)
+parser.add_argument(
+    "--input_size", default=512, help="Input size", type=int
+)
+parser.add_argument(
+    "--batch_size", default=32, help="Input size", type=int
+)
+parser.add_argument(
+    "--k", default=0, help="The value of K Fold", type=int
+)
+parser.add_argument("opts", help="Modify config options using the command-line", default=None,
+                    nargs=argparse.REMAINDER)
+args = parser.parse_args()
+
 if __name__ == '__main__':
-    k = 1
+    is_alb = False
+    k = args.k
+    batch_size = args.batch_size
+    test_batch_size = batch_size
+    input_size = args.input_size
+    device_id = args.device_id
     LOG_FREQ = 50
-    batch_size = 64
-    test_batch_size = 128
-    device_id = 2
     lr = 0.001
     epoch_start = 1
-    num_epochs = epoch_start + 100
-    model_name = 'efficientnet-b1'
-    writeFile = './output/logs/' + model_name + '_' + str(k)
-    store_name = './output/weights/' + model_name + '_' + str(k)
+    num_epochs = epoch_start + 50
+    model_name = args.model_name
+    writeFile = './output/logs/' + model_name + '_' + str(k) + '_' + str(input_size)
+    store_name = './output/weights/' + model_name + '_' + str(k) + '_' + str(input_size)
     if not os.path.isdir(store_name):
         os.makedirs(store_name)
     model_path = None
@@ -145,13 +167,13 @@ if __name__ == '__main__':
 
     is_train = True
     if is_train:
-        xdl = CLDCDataset(is_one_hot=True, transform=get_train_transforms(size=300, is_alb=False),
+        xdl = CLDCDataset(is_one_hot=True, transform=get_train_transforms(size=input_size, is_alb=is_alb),
                           is_alb=False, k=k)
         # train_loader = DataLoader(xdl, batch_size=batch_size, shuffle=False, num_workers=4,
         #                           sampler=BalanceClassSampler(labels=xdl.get_labels(), mode="upsampling"))
         train_loader = DataLoader(xdl, batch_size=batch_size, shuffle=True, num_workers=4)
         train_dataset_len = len(xdl)
-        xdl_eval = CLDCDataset(data_type='val', transform=get_valid_transforms(size=300, is_alb=False),
+        xdl_eval = CLDCDataset(data_type='val', transform=get_valid_transforms(size=input_size, is_alb=is_alb),
                                is_alb=False, is_one_hot=False, k=k)
         eval_loader = DataLoader(xdl_eval, batch_size=test_batch_size, shuffle=False, num_workers=4)
         eval_dataset_len = len(xdl_eval)
@@ -171,7 +193,7 @@ if __name__ == '__main__':
         start = time.time()
         epoch_start = 1
         num_epochs = 1
-        xdl_test = CLDCDataset(data_type='val', is_one_hot=False, transform=get_valid_transforms(size=224))
+        xdl_test = CLDCDataset(data_type='val', is_one_hot=False, transform=get_valid_transforms(size=input_size))
         eval_loader = DataLoader(xdl_test, batch_size=test_batch_size, shuffle=False, num_workers=4)
         test_dataset_len = len(xdl_test)
         print('test_dataset_len:', test_dataset_len)
