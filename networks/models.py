@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 from torch.nn.parameter import Parameter
+import timm
 
 # fc layer weight init
 def weights_init_kaiming(m):
@@ -210,6 +211,7 @@ class DCT_Layer(nn.Module):
         # print(outs.shape)
         return outs
 
+
 def get_efficientnet(model_name='efficientnet-b0', num_classes=5, pretrained=True):
     if pretrained:
         net = EfficientNet.from_pretrained(model_name)
@@ -242,11 +244,24 @@ class DCT_EfficientNet(nn.Module):
         return x
 
 
+class CassvaImgClassifier(nn.Module):
+    def __init__(self, model_arch='tf_efficientnet_b3_ns', n_class=5, pretrained=False):
+        super().__init__()
+        self.model = timm.create_model(model_arch, pretrained=pretrained)
+        n_features = self.model.classifier.in_features
+        self.model.classifier = nn.Linear(n_features, n_class)
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+
 if __name__ == '__main__':
     # model, image_size = get_efficientnet(model_name='efficientnet-b0', num_classes=5000, pretrained=True), 224
     # model, image_size, *_ = model_selection(modelname='resnet50', num_out_classes=5000, dropout=None)
     # model, image_size = ConcatModel(model_name='efficientnet-b0'), 224
-    model, image_size = DCT_EfficientNet(model_name='efficientnet-b0', num_classes=5000), 224
+    # model, image_size = DCT_EfficientNet(model_name='efficientnet-b0', num_classes=5000), 224
+    model, image_size = CassvaImgClassifier(model_arch='tf_efficientnet_b1_ns', n_class=5, pretrained=True), 224
     model = model.to(torch.device('cpu'))
     from torchsummary import summary
     # input_s = (3, image_size, image_size)

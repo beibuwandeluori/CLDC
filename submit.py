@@ -7,7 +7,7 @@ warnings.simplefilter("ignore", DecompressionBombWarning)
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from torch.utils.data import *
+from torch.utils.data import DataLoader
 import time
 from networks.models import get_efficientnet, model_selection
 from datasets.dataset import CLDCDatasetSubmission, get_valid_transforms

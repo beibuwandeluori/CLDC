@@ -5,7 +5,7 @@
       <paths name="CLDC">
         <serverdata>
           <mappings>
-            <mapping deploy="py_project/CLDC" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/py_project/CLDC" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

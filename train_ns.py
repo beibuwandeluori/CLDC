@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import time
-from networks.models import get_efficientnet
+from networks.models import get_efficientnet, CassvaImgClassifier
 from datasets.dataset import CLDCDataset, get_train_transforms, get_valid_transforms
 from losses.losses import LabelSmoothing, FocalLoss
 from catalyst.data.sampler import BalanceClassSampler
@@ -132,23 +132,29 @@ args = parser.parse_args()
 if __name__ == '__main__':
     is_train = True
     is_alb = False
+    is_mixcut = True
     k = args.k
     batch_size = args.batch_size
     test_batch_size = batch_size
     input_size = args.input_size
     device_id = args.device_id
     LOG_FREQ = 50
-    lr = 0.001
+    lr = 1e-4
     epoch_start = 1
     num_epochs = epoch_start + 50
     model_name = args.model_name
     writeFile = './output/logs/' + model_name + '_' + str(k) + '_' + str(input_size)
     store_name = './output/weights/' + model_name + '_' + str(k) + '_' + str(input_size)
+    if is_alb:
+        writeFile += '_alb'
+        store_name += '_alb'
     if not os.path.isdir(store_name):
         os.makedirs(store_name)
     model_path = None
     # model_path = '/data1'
-    model = get_efficientnet(model_name=model_name)
+    # model = get_efficientnet(model_name=model_name)
+    model = CassvaImgClassifier(model_arch=model_name, n_class=5, pretrained=True)
+
     if model_path is not None:
         # model = torch.load(model_path)
         model.load_state_dict(torch.load(model_path, map_location='cpu'))
@@ -158,7 +164,7 @@ if __name__ == '__main__':
     model = model.cuda(device_id)
     train_logger = Logger(model_name=writeFile, header=['epoch', 'loss', 'acc', 'lr'])
     # criterion = nn.CrossEntropyLoss()
-    criterion = LabelSmoothing(smoothing=0.2).cuda(device_id)
+    criterion = LabelSmoothing(smoothing=0.1).cuda(device_id)
     # criterion = FocalLoss(gamma=2)
     # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     # optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -168,7 +174,7 @@ if __name__ == '__main__':
 
     if is_train:
         xdl = CLDCDataset(is_one_hot=True, transform=get_train_transforms(size=input_size, is_alb=is_alb),
-                          is_alb=is_alb, k=k)
+                          is_alb=is_alb, k=k, do_cutmix=is_mixcut)
         # train_loader = DataLoader(xdl, batch_size=batch_size, shuffle=False, num_workers=4,
         #                           sampler=BalanceClassSampler(labels=xdl.get_labels(), mode="upsampling"))
         train_loader = DataLoader(xdl, batch_size=batch_size, shuffle=True, num_workers=4)
