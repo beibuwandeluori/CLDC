@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import math
+from torch.nn.modules.loss import _WeightedLoss
+import torch.nn.functional as F
 
 class LabelSmoothing(nn.Module):
     def __init__(self, smoothing=0.05):
@@ -24,6 +26,27 @@ class LabelSmoothing(nn.Module):
             return loss.mean()
         else:
             return torch.nn.functional.cross_entropy(x, target)
+
+class MyCrossEntropyLoss(_WeightedLoss):
+    def __init__(self, weight=None, reduction='mean'):
+        super().__init__(weight=weight, reduction=reduction)
+        self.weight = weight
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        lsm = F.log_softmax(inputs, -1)
+
+        if self.weight is not None:
+            lsm = lsm * self.weight.unsqueeze(0)
+
+        loss = -(targets * lsm).sum(-1)
+
+        if self.reduction == 'sum':
+            loss = loss.sum()
+        elif self.reduction == 'mean':
+            loss = loss.mean()
+
+        return loss
 
 # 知识蒸馏损失函数
 def loss_fn_kd(outputs, labels, teacher_outputs, params):
@@ -116,7 +139,7 @@ class ArcFaceLoss(nn.modules.Module):
         return loss
 
 
-def loss_fn(metric_crit, target_dict, output_dict, val=False, n_classes=5000):
+def loss_fn(metric_crit, target_dict, output_dict, val=False, n_classes=5):
     y_true = target_dict['target']
     y_pred = output_dict['logits']
     # ignore invalid classes for val loss
