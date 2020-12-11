@@ -96,14 +96,14 @@ def valid_one_epoch(epoch, model, loss_fn, val_loader, device, is_save=True):
     return acc_score.avg, losses.avg
 
 
-def prepare_dataloader(df, trn_idx, val_idx,
+def prepare_dataloader(df, trn_idx, val_idx, do_fmix=False, do_cutmix=False,
                        data_root='/raid/chenby/cassava-leaf-disease-classification/train_images'):
 
     train_ = df.loc[trn_idx, :].reset_index(drop=True)
     valid_ = df.loc[val_idx, :].reset_index(drop=True)
 
     train_ds = CassavaDataset(train_, data_root, transforms=get_train_transforms(), output_label=True,
-                              one_hot_label=True, do_fmix=False, do_cutmix=False)
+                              one_hot_label=True, do_fmix=do_fmix, do_cutmix=do_cutmix)
     valid_ds = CassavaDataset(valid_, data_root, transforms=get_valid_transforms(), output_label=True,
                               one_hot_label=True)
 
@@ -145,7 +145,7 @@ CFG = {
 }
 
 if __name__ == '__main__':
-    store_name = './output_v2/weights/' + CFG['model_arch'] + '_' + str(CFG['img_size'])
+    store_name = './output_v2/weights/' + CFG['model_arch'] + '_' + str(CFG['img_size']) + '_cutmix'
     if not os.path.isdir(store_name):
         os.makedirs(store_name)
     train = pd.read_csv('/raid/chenby/cassava-leaf-disease-classification/train.csv')
@@ -157,12 +157,12 @@ if __name__ == '__main__':
                             random_state=CFG['seed']).split(np.arange(train.shape[0]), train.label.values)
 
     for fold, (trn_idx, val_idx) in enumerate(folds):
-        writeFile = './output_v2/logs/' + CFG['model_arch'] + '_' + str(fold) + '_' + str(CFG['img_size'])
+        writeFile = './output_v2/logs/' + CFG['model_arch'] + '_' + str(fold) + '_' + str(CFG['img_size']) + '_cutmix'
         train_logger = Logger(model_name=writeFile, header=['epoch', 'loss', 'acc', 'lr'])
 
         print('Training with {} started'.format(fold))
         print(len(trn_idx), len(val_idx))
-        train_loader, val_loader = prepare_dataloader(train, trn_idx, val_idx)
+        train_loader, val_loader = prepare_dataloader(train, trn_idx, val_idx, do_cutmix=True, do_fmix=False)
         device = torch.device(CFG['device'])
 
         model = CassvaImgClassifier(CFG['model_arch'], train.label.nunique(), pretrained=True).to(device)

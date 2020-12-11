@@ -105,6 +105,16 @@ def load_image_paths_labels(root_path='/raid/chenby/cassava-leaf-disease-classif
         return x_test, y_test
 
 
+def load_soft_labels(root_path='/raid/chenby/cassava-leaf-disease-classification/train_images',
+                     soft_npy_path='/data1/cby/py_project/CLDC/output/results/efn_b5_ns_train.npy'):
+    image_names = sorted(os.listdir(root_path))
+    soft_labels = np.load(soft_npy_path)
+    img_label_dict = {}
+    for i, name in enumerate(image_names):
+        img_label_dict[name] = soft_labels[i]
+
+    return img_label_dict
+
 def read_image(image_path):
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -134,7 +144,7 @@ class CLDCDataset(Dataset):
 
     def __init__(self, root_path='/raid/chenby/cassava-leaf-disease-classification/train_images',
                  csv_path='/raid/chenby/cassava-leaf-disease-classification/train.csv',
-                 is_one_hot=False, transform=None, do_cutmix=False,
+                 is_one_hot=False, transform=None, do_cutmix=False, soft_npy_path=None,
                  classes_num=5, data_type='train', is_alb=True, k=-1):
         super().__init__()
         self.classes_num = classes_num
@@ -143,6 +153,11 @@ class CLDCDataset(Dataset):
         self.is_alb = is_alb
         self.do_cutmix = do_cutmix
         self.data_type = data_type
+        self.soft_npy_path = soft_npy_path
+
+        if self.soft_npy_path is not None:
+            self.soft_labels = load_soft_labels(root_path=root_path, soft_npy_path=soft_npy_path)
+
         self.images, self.labels = load_image_paths_labels(root_path=root_path, csv_path=csv_path,
                                                            data_type=data_type, k=k)
         print(data_type, len(self.images), self.labels.shape)
@@ -163,7 +178,14 @@ class CLDCDataset(Dataset):
             label = one_hot(self.classes_num, label)
 
         if self.data_type == 'train' and self.do_cutmix and np.random.random() > 0.5:
+            if self.soft_npy_path is not None:
+                soft_label = self.soft_labels[os.path.basename(image_path)]
+                image, label, soft_label = self.cut_mix(image, label, soft_label)
+                return image, label, soft_label
             image, label = self.cut_mix(image, label)
+        elif self.data_type == 'train' and self.soft_npy_path is not None:
+            soft_label = self.soft_labels[os.path.basename(image_path)]
+            return image, label, soft_label
 
         return image, label
 
@@ -173,7 +195,7 @@ class CLDCDataset(Dataset):
     def get_labels(self):
         return list(self.labels)
 
-    def cut_mix(self, img, label):
+    def cut_mix(self, img, label, soft_label=None):
         cmix_ix = np.random.choice(len(self.images), size=1)[0]
         cmix_image_path = self.images[cmix_ix]
         cmix_img = read_image(cmix_image_path)
@@ -196,14 +218,18 @@ class CLDCDataset(Dataset):
             cmix_label = one_hot(self.classes_num, cmix_label)
         # print(label, cmix_label, type(label), type(cmix_label), type(rate))
         target = rate * label + (1. - rate) * cmix_label
+        if soft_label is not None:
+            cmix_soft_label = self.soft_labels[os.path.basename(cmix_image_path)]
+            sorf_target = rate * soft_label + (1. - rate) * cmix_soft_label
+            return img, target, sorf_target
 
         return img, target
 
 
 class CLDCDatasetSubmission(Dataset):
 
-    def __init__(self, root_path='/raid/chenby/cassava-leaf-disease-classification/test_images', is_one_hot=False, transforms=None,
-                 classes_num=5, is_alb=True):
+    def __init__(self, root_path='/raid/chenby/cassava-leaf-disease-classification/test_images', is_one_hot=False,
+                 transforms=None, classes_num=5, is_alb=True):
         super().__init__()
         self.classes_num = classes_num
         self.transforms = transforms
@@ -235,19 +261,30 @@ class CLDCDatasetSubmission(Dataset):
 
 if __name__ == '__main__':
     # load_image_paths_labels(k=0)
-
+    # soft_labels = load_soft_labels()
+    # print('Load finished!')
+    # print(soft_labels['996927503.jpg'])
+    # print(len(soft_labels))
+    # soft_npy_path = None
+    soft_npy_path = '/data1/cby/py_project/CLDC/output/results/efn_b5_ns_train.npy'
     start = time.time()
     xdl = CLDCDataset(transform=get_valid_transforms(size=224, is_alb=False), is_one_hot=True, data_type='train',
-                      is_alb=False, k=0, do_cutmix=True)
+                      is_alb=False, k=0, do_cutmix=True, soft_npy_path=soft_npy_path)
 
     print('length:', len(xdl))
     train_loader = DataLoader(xdl, batch_size=32, shuffle=False, num_workers=4)
     # train_loader = DataLoader(xdl, batch_size=128, shuffle=False, num_workers=4,
     #                           sampler=BalanceClassSampler(labels=xdl.get_labels(), mode="downsampling"))
-    for i, (img, label) in enumerate(train_loader):
-        print(i, '/', len(train_loader), img.shape, label.shape, label[0])
-        if i == 20:
-            break
+    if soft_npy_path is None:
+        for i, (img, label) in enumerate(train_loader):
+            print(i, '/', len(train_loader), img.shape, label.shape, label[0])
+            if i == 20:
+                break
+    else:
+        for i, (img, label, soft_label) in enumerate(train_loader):
+            print(i, '/', len(train_loader), img.shape, label.shape, soft_label.shape)  # , label[0], soft_label[0]
+            if i == 20:
+                break
     end = time.time()
     print('end iterate')
     print('DataLoader total time: %fs' % (end - start))

@@ -81,16 +81,12 @@ class CassavaDataset(Dataset):
                  transforms=None, output_label=True, one_hot_label=False, do_fmix=False,
                  do_cutmix=False, input_size=512):
         super().__init__()
-        fmix_params = {
-                          'alpha': 1.,
-                          'decay_power': 3.,
-                          'shape': (input_size, input_size),
-                          'max_soft': True,
-                          'reformulate': False
-                      },
-        cutmix_params = {
-            'alpha': 1,
-        }
+        fmix_params = {'alpha': 1.,
+                       'decay_power': 3.,
+                       'shape': (input_size, input_size),
+                       'max_soft': True,
+                       'reformulate': False}
+        cutmix_params = {'alpha': 1}
         self.input_size = input_size
         self.df = df.reset_index(drop=True).copy()
         self.transforms = transforms
@@ -127,7 +123,6 @@ class CassavaDataset(Dataset):
         if self.do_fmix and np.random.random() > 0.5:
             with torch.no_grad():
                 # lam, mask = sample_mask(**self.fmix_params)
-
                 lam = np.clip(np.random.beta(self.fmix_params['alpha'], self.fmix_params['alpha']), 0.6, 0.7)
 
                 # Make mask, get mean / std
@@ -168,7 +163,7 @@ class CassavaDataset(Dataset):
 
                 img[:, bbx1:bbx2, bby1:bby2] = cmix_img[:, bbx1:bbx2, bby1:bby2]
                 rate = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (self.input_size * self.input_size))
-                print(target, self.labels[cmix_ix], type(target), type(self.labels[cmix_ix]), type(rate), type(1. - rate))
+                # print(target, self.labels[cmix_ix], type(target), type(self.labels[cmix_ix]), type(rate), type(1. - rate))
                 target = rate * target + (1. - rate) * self.labels[cmix_ix]
 
             # print('-', img.sum())
@@ -188,8 +183,8 @@ if __name__ == '__main__':
 
     start = time.time()
     train = pd.read_csv('/raid/chenby/cassava-leaf-disease-classification/train.csv')
-    xdl = CassavaDataset(df=train,  transforms=get_train_transforms(size=512), output_label=True, one_hot_label=True, do_fmix=False,
-                         do_cutmix=True, input_size=512)
+    xdl = CassavaDataset(df=train,  transforms=get_train_transforms(size=512), output_label=True, one_hot_label=True,
+                         do_fmix=True, do_cutmix=False, input_size=512)
 
     print('length:', len(xdl))
     train_loader = DataLoader(xdl, batch_size=32, shuffle=False, num_workers=4)

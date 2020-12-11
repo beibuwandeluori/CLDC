@@ -141,7 +141,7 @@ if __name__ == '__main__':
     LOG_FREQ = 50
     lr = 1e-4
     epoch_start = 1
-    num_epochs = epoch_start + 50
+    num_epochs = epoch_start + 10
     model_name = args.model_name
     writeFile = './output/logs/' + model_name + '_' + str(k) + '_' + str(input_size)
     store_name = './output/weights/' + model_name + '_' + str(k) + '_' + str(input_size)
@@ -169,9 +169,10 @@ if __name__ == '__main__':
     # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     # optimizer = optim.Adam(model.parameters(), lr=lr)
     optimizer = optim.AdamW(model.parameters(), lr=lr)
-    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.9)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.8, patience=2)
-
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.9)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.8, patience=2)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1,
+    #                                                                  eta_min=1e-6, last_epoch=-1)
     if is_train:
         xdl = CLDCDataset(is_one_hot=True, transform=get_train_transforms(size=input_size, is_alb=is_alb),
                           is_alb=is_alb, k=k, do_cutmix=is_mixcut)
